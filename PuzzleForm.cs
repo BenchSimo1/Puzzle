@@ -20,9 +20,12 @@ namespace Puzzle
         const int NUMBERROW = 3;
 
         Size cellSize = new Size(78 , 78);
-        
         Point startPointLocation = new Point(30, 26);
+        Rectangle dragBoxFromMouseDown;
+        Label selectedLabel;
         
+
+
 
         public PuzzleForm()
         {
@@ -30,11 +33,96 @@ namespace Puzzle
             createCells();
             emptyCell = groupCells.Controls[8] as Label;
 
+            emptyCell.DragEnter += new DragEventHandler(this.emptyCell_DragEnter);
+            emptyCell.DragLeave += new System.EventHandler(this.emptyCell_DragLeave);
+
+            //groupCells.DragDrop += new  DragEventHandler(this.groupCells_DragDrop);
+
+
+
 
             Shuffle();
+        }
 
+       
+
+
+        private void emptyCell_DragEnter(object sender, DragEventArgs e)
+        {
+            Console.WriteLine("Enter");
+        }
+        private void emptyCell_DragLeave(object sender, System.EventArgs e)
+        {
+            Console.WriteLine("leave");
 
         }
+
+        private void label_MouseDown(object sender , MouseEventArgs e)
+        {
+            selectedLabel = sender as Label;
+            selectedLabel.MouseMove += new MouseEventHandler(this.label_MouseMove);
+            
+
+            if (selectedLabel != findDown() && selectedLabel != findUp() && selectedLabel != findLeft() && selectedLabel != findRight())
+            {
+                dragBoxFromMouseDown = Rectangle.Empty;
+            }
+            else
+            {
+                Size dragSize = SystemInformation.DragSize;
+
+                // Create a rectangle using the DragSize, with the mouse position being
+                // at the center of the rectangle.
+                dragBoxFromMouseDown = new Rectangle(new Point(e.X - (dragSize.Width / 2),
+                                          e.Y - (dragSize.Height / 2)), dragSize);
+
+                
+            }
+        }
+
+        private void groupCells_MouseUp(object sender, MouseEventArgs e)
+        {
+            
+            //if (groupCells.GetChildAtPoint(e.Location) != emptyCell)
+            //{
+            //    Console.WriteLine("yey");
+            //    dragBoxFromMouseDown = Rectangle.Empty;
+            //}
+        }
+
+        private void label_MouseMove(object sender, MouseEventArgs e)
+        {
+
+            if ((e.Button & MouseButtons.Left) == MouseButtons.Left)
+            {
+
+                // If the mouse moves outside the rectangle, start the drag.
+                if (dragBoxFromMouseDown != Rectangle.Empty &&
+                    !dragBoxFromMouseDown.Contains(e.X, e.Y))
+                {
+                    DragDropEffects dropEffect = groupCells.DoDragDrop(selectedLabel, DragDropEffects.All | DragDropEffects.Link);
+                    swapEmpty(selectedLabel);
+                }
+            }
+        }
+
+        //private void groupCells_DragDrop(object sender, DragEventArgs e)
+        //{
+            
+
+        //        Object item = (object)e.Data;
+        //        Console.WriteLine(item);
+
+        //        // Perform drag-and-drop, depending upon the effect.
+        //        if (e.Effect == DragDropEffects.Copy ||
+        //            e.Effect == DragDropEffects.Move)
+        //        {
+        //            swapEmpty(selectedLabel);
+        //        }
+
+          
+        //}
+
 
         public void Shuffle()
         {
@@ -85,7 +173,8 @@ namespace Puzzle
                     cell.Name = $"Cell({i} , {j})";
                     cell.TextAlign = ContentAlignment.MiddleCenter;
                     cell.TabIndex = i == 0 ? j + 1 : i == 1 ? j + 4 : j + 7;
-
+                    cell.MouseDown += new MouseEventHandler(this.label_MouseDown);
+                    //cell.DragDrop += new DragEventHandler(this.groupCells_DragDrop);
                     if (i == NUMBERROW - 1 && j == NUMBERCOLUMN - 1)
                     {
                         cell.Text = "";
@@ -100,7 +189,7 @@ namespace Puzzle
             }
 
         }
-        
+
         void swapEmpty(Label cell)
         {
             var value = emptyCell.Location;
@@ -111,14 +200,9 @@ namespace Puzzle
 
         Label findLeft()
         {
-            foreach (Label cell in groupCells.Controls)
-            {
-                if (cell.Location.Y == emptyCell.Location.Y && cell.Location.X == emptyCell.Location.X + cellSize.Width )
-                    return cell;
-            }
-
-            return null;
+            return groupCells.GetChildAtPoint(new Point(emptyCell.Location.X + cellSize.Width, emptyCell.Location.Y)) as Label;  
         }
+
         void moveLeft()
         {
             if (emptyCell.Location.X == startPointLocation.X + cellSize.Width * (NUMBERROW -1))
@@ -127,17 +211,11 @@ namespace Puzzle
             swapEmpty(findLeft());
         }
 
-
         Label findRight()
         {
-            foreach (Label cell in groupCells.Controls)
-            {
-                if (cell.Location.Y == emptyCell.Location.Y && cell.Location.X + cellSize.Width == emptyCell.Location.X)
-                    return cell;
-            }
-
-            return null;
+            return groupCells.GetChildAtPoint(new Point(emptyCell.Location.X - cellSize.Width, emptyCell.Location.Y)) as Label;   
         }
+
         void moveRight()
         {
             if (emptyCell.Location.X == startPointLocation.X )
@@ -147,17 +225,11 @@ namespace Puzzle
 
         }
 
-
         Label findUp()
         {
-            foreach (Label cell in groupCells.Controls)
-            {
-                if (cell.Location.X == emptyCell.Location.X && cell.Location.Y - cellSize.Height == emptyCell.Location.Y )
-                    return cell;
-            }
-
-            return null;
+            return groupCells.GetChildAtPoint(new Point(emptyCell.Location.X, emptyCell.Location.Y + cellSize.Height)) as Label;
         }
+
         void moveUp()
         {
             if (emptyCell.Location.Y == startPointLocation.Y + cellSize.Height * (NUMBERCOLUMN - 1))
@@ -167,24 +239,17 @@ namespace Puzzle
 
         }
 
-
         Label findDown()
-        {
-            foreach (Label cell in groupCells.Controls)
-            {
-                if (cell.Location.X == emptyCell.Location.X && cell.Location.Y + cellSize.Height == emptyCell.Location.Y)
-                    return cell;
-            }
-
-            return null;
+        {     
+            return groupCells.GetChildAtPoint(new Point(emptyCell.Location.X, emptyCell.Location.Y - cellSize.Height)) as Label; 
         }
+
         void moveDown()
         {
             if (emptyCell.Location.Y == startPointLocation.Y)
                 return;
 
             swapEmpty(findDown());
-
         }
 
         private void PuzzleForm_KeyDown(object sender, KeyEventArgs e)
@@ -254,5 +319,6 @@ namespace Puzzle
             }
 
         }
+
     }
 }
